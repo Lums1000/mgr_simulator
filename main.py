@@ -1,13 +1,8 @@
 import math
 import time
-
-import snap7
-import sys
-from tkinter import *
 from os import path
 
 from bottle import Bottle
-from entryGUI import Window
 from machine import *
 from plcReloadData import PLCWrite, PLCRead, PLCStatus
 from productionLine import ProductionLine
@@ -429,9 +424,6 @@ class Simulator:
 if __name__ == '__main__':
     g = Simulator()
     g.initial()
-    # initialize tkinter
-    # root = Tk()
-    # app = Window(root, g)
 
     print('sim_count: ' + str(g.sim_count))
     print('status_thread_count: ' + str(g.status_thread_count))

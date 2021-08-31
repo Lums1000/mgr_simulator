@@ -1,12 +1,11 @@
 import math
-import time
 from os import path
 
-from bottle import Bottle
-from machine import *
-from plcReloadData import PLCWrite, PLCRead, PLCStatus
-from productionLine import ProductionLine
 from sprites import *
+from plcReloadData import *
+from objects.machine import *
+from objects.bottle import Bottle
+from objects.productionLine import ProductionLine
 
 
 class Simulator:
@@ -33,7 +32,6 @@ class Simulator:
         self.running = False
         self.self_processing_on = False
         self.allow_keyboard = False
-        self.wait_for_mouse_release = False
         self.broken_bottle_chance = BROKEN_BOTTLE_PROB
         self.last_bottle = None
         self.texts = []
@@ -175,7 +173,7 @@ class Simulator:
         self.time_mem = time.time()
         while self.running:
             self.sim_count += 1
-            self.clock.tick()
+            self.clock.tick(120)
             self.events()
             self.update()
             if self.self_processing_on:
@@ -196,49 +194,26 @@ class Simulator:
 
     def events(self):
         # Simulation loop events
-        for event in pg.event.get():
-            # check for closing window
-            if event.type == pg.QUIT:
-                self.running = False
-            # check for pressing keyboard key
-            if event.type == pg.KEYDOWN:
-                if self.allow_keyboard:
-                    if event.key == pg.K_SPACE:
-                        self.production_line_run = not self.production_line_run
-                    if event.key == pg.K_a:
-                        self.machine_A_operation[0] = True
-                    if event.key == pg.K_b:
-                        self.machine_B_operation[0] = True
-                    if event.key == pg.K_c:
-                        self.machine_C_operation[0] = True
-            # check for releasing keyboard key
-            if event.type == pg.KEYUP:
-                if self.allow_keyboard:
-                    if event.key == pg.K_SPACE:
-                        self.production_line_run = self.production_line_run
-                    if event.key == pg.K_a:
-                        self.machine_A_operation[0] = False
-                    if event.key == pg.K_b:
-                        self.machine_B_operation[0] = False
-                    if event.key == pg.K_c:
-                        self.machine_C_operation[0] = False
-            # check for pressing mouse button
-            if event.type == pg.MOUSEBUTTONDOWN:
-                pos = pg.mouse.get_pos()
-                x = pos[0]
-                y = pos[1]
-                # switching self_processing_on and allow_keyboard settings
-                if 160 <= x <= 185 and not self.wait_for_mouse_release:
-                    if 110 <= y <= 135:
-                        self.self_processing_on = not self.self_processing_on
-                        self.wait_for_mouse_release = True
-                    if 150 <= y <= 175:
-                        self.allow_keyboard = not self.allow_keyboard
-                        self.wait_for_mouse_release = True
-            # check for releasing mouse button
-            if event.type == pg.MOUSEBUTTONUP:
-                self.wait_for_mouse_release = False
-        # continuous checking of mouse position for smoothing slider changes
+        updated_broken_bottle_chance = False
+        # continuous checking of...
+        # ...keys allowing action in time
+        if self.allow_keyboard:
+            keys = pg.key.get_pressed()
+            if keys[pg.K_LCTRL]:
+                if keys[pg.K_LEFT]:
+                    for bottle in self.bottles:
+                        bottle.rect.x -= 25
+                if keys[pg.K_RIGHT]:
+                    for bottle in self.bottles:
+                        bottle.rect.x += 25
+            else:
+                if keys[pg.K_LEFT]:
+                    for bottle in self.bottles:
+                        bottle.rect.x -= 1
+                if keys[pg.K_RIGHT]:
+                    for bottle in self.bottles:
+                        bottle.rect.x += 1
+        # ...mouse position for smoothing slider changes
         if pg.mouse.get_pressed()[0]:
             pos = pg.mouse.get_pos()
             x = pos[0]
@@ -252,7 +227,67 @@ class Simulator:
                         x = 220
                     x -= 20
                     self.broken_bottle_chance = math.ceil(x / 2)
-                    self.texts[1] = self.render_text("current chance: " + str(self.broken_bottle_chance) + "%", 20, WHITE)
+                    updated_broken_bottle_chance = True
+        # single checking of pressing keys
+        for event in pg.event.get():
+            # check for closing window
+            if event.type == pg.QUIT:
+                self.running = False
+            # check for pressing keyboard key
+            if event.type == pg.KEYDOWN:
+                if event.key == pg.K_F2:
+                    self.self_processing_on = not self.self_processing_on
+                if event.key == pg.K_F3:
+                    self.allow_keyboard = not self.allow_keyboard
+                if self.allow_keyboard:
+                    if event.key == pg.K_SPACE:
+                        self.production_line_run = not self.production_line_run
+                    if event.key == pg.K_a:
+                        self.machine_A_operation[0] = True
+                    if event.key == pg.K_b:
+                        self.machine_B_operation[0] = True
+                    if event.key == pg.K_c:
+                        self.machine_C_operation[0] = True
+                    if event.key == pg.K_DOWN:
+                        if keys[pg.K_LCTRL]:
+                            self.broken_bottle_chance -= 10
+                        else:
+                            self.broken_bottle_chance -= 1
+                        updated_broken_bottle_chance = True
+                    if event.key == pg.K_UP:
+                        if keys[pg.K_LCTRL]:
+                            self.broken_bottle_chance += 10
+                        else:
+                            self.broken_bottle_chance += 1
+                        updated_broken_bottle_chance = True
+            # check for releasing keyboard key
+            if event.type == pg.KEYUP:
+                if self.allow_keyboard:
+                    if event.key == pg.K_a:
+                        self.machine_A_operation[0] = False
+                    if event.key == pg.K_b:
+                        self.machine_B_operation[0] = False
+                    if event.key == pg.K_c:
+                        self.machine_C_operation[0] = False
+            # check for pressing mouse button
+            if event.type == pg.MOUSEBUTTONDOWN:
+                pos = pg.mouse.get_pos()
+                x = pos[0]
+                y = pos[1]
+                # switching self_processing_on and allow_keyboard settings
+                if 160 <= x <= 185:
+                    if 110 <= y <= 135:
+                        self.self_processing_on = not self.self_processing_on
+                    if 150 <= y <= 175:
+                        self.allow_keyboard = not self.allow_keyboard
+            # check for releasing mouse button
+            # if event.type == pg.MOUSEBUTTONUP:  # no need of use
+        if updated_broken_bottle_chance:
+            if self.broken_bottle_chance > 100:
+                self.broken_bottle_chance = 100
+            if self.broken_bottle_chance < 0:
+                self.broken_bottle_chance = 0
+            self.texts[1] = self.render_text("current chance: " + str(self.broken_bottle_chance) + "%", 20, WHITE)
 
     def update(self):
         # Simulation loop update
@@ -337,7 +372,7 @@ class Simulator:
 
     def plc_connection_refresh(self):
         # data access control
-        if not self.io_lock:
+        if not self.io_lock and self.plc_status_thread.connected:
             self.io_lock = True
 
             # update simulation outputs

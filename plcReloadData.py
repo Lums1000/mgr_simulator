@@ -1,9 +1,7 @@
 import ctypes
 import time
-from threading import Thread
-
 import snap7
-
+from threading import Thread
 from settings import WHITE
 
 

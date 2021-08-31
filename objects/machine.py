@@ -1,7 +1,7 @@
 import pygame as pg
 
-from laser import Laser
-from light import Light, Light2
+from objects.laser import Laser
+from objects.light import Light, Light2
 from settings import *
 
 
@@ -134,6 +134,12 @@ class Machine(pg.sprite.Sprite):
                 self.state2 = True
                 self.operation_time = pg.time.get_ticks()
         if self.state2:
+            if self.operation_bottle is not None:
+                if self.operation_bottle.closed:
+                    self.operation_ok = False
+                    self.operation_nok = True
+                    self.state2 = False
+                    self.state3 = True
             if pg.time.get_ticks() - self.operation_time >= self.operation_duration:
                 if self.operation_bottle is not None:
                     if self.operation_bottle.broken:
@@ -166,7 +172,7 @@ class Machine(pg.sprite.Sprite):
                 self.state2 = True
                 self.operation_time = pg.time.get_ticks()
         if self.state2:
-            if self.operation_bottle is None:
+            if self.operation_bottle is None or self.operation_bottle.closed:
                 self.operation_ok = False
                 self.operation_nok = True
                 self.state2 = False
@@ -177,6 +183,11 @@ class Machine(pg.sprite.Sprite):
                         # preventing of overfilling bottle
                         if self.operation_bottle.filled < self.operation_bottle.fill_max:
                             self.operation_bottle.filled += 2
+                else:
+                    self.operation_ok = False
+                    self.operation_nok = True
+                    self.state2 = False
+                    self.state3 = True
                 if pg.time.get_ticks() - self.operation_time >= self.operation_duration:
                     if self.operation_bottle_pos == self.operation_bottle.rect.x:
                         self.operation_ok = True
@@ -202,7 +213,7 @@ class Machine(pg.sprite.Sprite):
                 self.state2 = True
                 self.operation_time = pg.time.get_ticks()
         if self.state2:
-            if self.operation_bottle is None:
+            if self.operation_bottle is None or self.operation_bottle.closed:
                 self.operation_ok = False
                 self.operation_nok = True
                 self.state2 = False
@@ -219,6 +230,7 @@ class Machine(pg.sprite.Sprite):
                         self.operation_bottle.image = self.operation_bottle.image_4
                     else:
                         self.operation_bottle.image = self.operation_bottle.image_3
+                    self.operation_bottle.closed = True
                 self.state2 = False
                 self.state3 = True
         if self.state3:

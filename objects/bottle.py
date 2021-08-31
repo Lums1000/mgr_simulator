@@ -26,6 +26,7 @@ class Bottle(pg.sprite.Sprite):
         self.rect.y = y
         # Bottle filler variables
         self.filled = 0
+        self.closed = False
         self.fill_max = 130  # max 130
         self.filler_color = FILLER_COLOR
         self.filler_transparency = FILLER_TRANSPARENCY

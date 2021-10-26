@@ -27,9 +27,11 @@ class Bottle(pg.sprite.Sprite):
         # Bottle filler variables
         self.filled = 0
         self.closed = False
-        self.fill_max = 130  # max 130
-        self.filler_color = FILLER_COLOR
-        self.filler_transparency = FILLER_TRANSPARENCY
+        self.fill_max = 120  # max 130
+        self.overfilled = 140
+        self.filler_name = ""
+        self.filler_color = self.sim.filler_color
+        self.filler_transparency = self.sim.filler_transparency
 
     def update(self):
         # moving bottle with production line

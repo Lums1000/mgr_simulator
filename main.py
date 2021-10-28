@@ -1,5 +1,6 @@
 import math
 from os import path
+from configparser import ConfigParser
 
 from objects.filler import Filler
 from sprites import *
@@ -20,6 +21,7 @@ class Simulator:
         self.clock = pg.time.Clock()
         self.font_name = pg.font.match_font(FONT_NAME)
         self.dir = ''
+        self.config = ConfigParser()
         self.fps = 0
         self.max_fps = 1
         self.manual_mode_fps = 1
@@ -110,23 +112,68 @@ class Simulator:
         self.inputs[0] = True
         for i in range(24):
             self.outputs.append(False)
-        # Reading settings from .ini file
-        with open(path.join(self.dir, INI_FILE), 'r') as f:
-            try:
-                values = f.read().split(",")
-                self.plc_address = str(values[0])
-                self.plc_rack = int(values[1])
-                self.plc_slot = int(values[2])
-                self.plc_port = int(values[3])
-                self.broken_bottle_chance = int(values[4])
-            except Exception as e:
-                print(e)
         # Reading settings from .py file
-        self.max_fps = FPS
-        self.manual_mode_fps = MANUAL_MODE_FPS
-        self.min_space = MIN_SPACE
-        self.max_space = MAX_SPACE
-        self.next_space = randrange(self.min_space, self.max_space)
+            self.max_fps = FPS
+            self.manual_mode_fps = MANUAL_MODE_FPS
+            self.min_space = MIN_SPACE
+            self.max_space = MAX_SPACE
+            self.next_space = randrange(self.min_space, self.max_space)
+        # Reading settings from .ini file
+        try:
+            self.config.read('simulator.ini')
+            # [simulator]
+            self.broken_bottle_chance = self.config.getint('simulator', 'broken_bottle_probability')
+            if self.broken_bottle_chance < 0:
+                self.broken_bottle_chance = 0
+            if self.broken_bottle_chance > 100:
+                self.broken_bottle_chance = 100
+            self.min_space = self.config.getint('simulator', 'min_bottles_space')
+            if self.min_space < 0:
+                self.min_space = 0
+            self.max_space = self.config.getint('simulator', 'max_bottles_space')
+            if self.max_space < self.min_space:
+                self.max_space = self.min_space
+            self.next_space = randrange(self.min_space, self.max_space)
+            self.max_fps = self.config.getint('simulator', 'max_fps')
+            if self.max_fps < 30:
+                self.max_fps = 30
+            if self.max_fps > 800:
+                self.max_fps = 800
+            self.manual_mode_fps = self.config.getint('simulator', 'manual_mode_fps')
+            if self.manual_mode_fps < 30:
+                self.manual_mode_fps = 30
+            if self.manual_mode_fps > 800:
+                self.manual_mode_fps = 800
+            # [plc]
+            self.plc_address = self.config.get('plc', 'address')
+            self.plc_rack = self.config.getint('plc', 'rack')
+            self.plc_slot = self.config.getint('plc', 'slot')
+            self.plc_port = self.config.getint('plc', 'port')
+            # [filler]
+            # Preparing fillers list
+            self.fillers.append(Filler(self.config.get('filler_1', 'name'),
+                                       self.config.getint('filler_1', 'red'),
+                                       self.config.getint('filler_1', 'green'),
+                                       self.config.getint('filler_1', 'blue'),
+                                       self.config.getfloat('filler_1', 'transparency'),
+                                       self.config.getint('filler_1', 'amount'),
+                                       self.config.getboolean('filler_1', 'infinite')))
+            self.fillers.append(Filler(self.config.get('filler_2', 'name'),
+                                       self.config.getint('filler_2', 'red'),
+                                       self.config.getint('filler_2', 'green'),
+                                       self.config.getint('filler_2', 'blue'),
+                                       self.config.getfloat('filler_2', 'transparency'),
+                                       self.config.getint('filler_2', 'amount'),
+                                       self.config.getboolean('filler_2', 'infinite')))
+            self.fillers.append(Filler(self.config.get('filler_3', 'name'),
+                                       self.config.getint('filler_3', 'red'),
+                                       self.config.getint('filler_3', 'green'),
+                                       self.config.getint('filler_3', 'blue'),
+                                       self.config.getfloat('filler_3', 'transparency'),
+                                       self.config.getint('filler_3', 'amount'),
+                                       self.config.getboolean('filler_3', 'infinite')))
+        except Exception as e:
+            print(e)
         # Resetting counters for measurements
         self.sim_count = 0
         self.read_pps = 0
@@ -141,10 +188,6 @@ class Simulator:
         self.time_set = 0
         self.timer_on = False
         self.setting_page = 0
-        # Preparing fillers list
-        self.fillers.append(Filler("filler_1", 219, 248, 255, 0.6))
-        self.fillers.append(Filler("filler_2", 15, 255, 151, 0.7))
-        self.fillers.append(Filler("filler_3", 219, 15, 15, 0.8))
         self.filler_update = True
         # Initial texts render
         self.texts.append([])
@@ -152,6 +195,7 @@ class Simulator:
         self.texts.append([])
         self.texts.append([])
         self.texts.append([])
+
         self.texts[0].append(self.render_text("Broken bottle chance: ", 20, WHITE))
         self.texts[0].append(self.render_text("current chance: " + str(self.broken_bottle_chance) + "%", 20, WHITE))
         self.texts[0].append(self.render_text("Start simulation:", 20, WHITE))
@@ -247,7 +291,7 @@ class Simulator:
         self.manual_mode_on = False
         self.unlimited_fps_on = False
         self.auto_fps_on = False
-        self.timer_on = False
+        self.timer_on = True
         self.time_set = 60
         self.run()
 
@@ -819,8 +863,9 @@ class Simulator:
 
         # draw simulator settings depend on selected page
         # pg.draw.rect(self.screen, DARK_GRAY, (0, 25, 1000, 1))
+
+        # simulator setting
         if self.setting_page == 0:
-            # Simulator setting
             pg.draw.rect(self.screen, DARK_GRAY, (0, 0, 73, 25))
             # broken bottle chance
             self.screen.blit(self.texts[0][0], (10, 30))  # 'Broken bottle chance:'
@@ -853,17 +898,18 @@ class Simulator:
             pg.draw.rect(self.screen, WHITE, (160, 250, 25, 25))
             if self.random_space_on:
                 self.screen.blit(self.checked, (160, 250))
+        # PLC setting
         elif self.setting_page == 1:
             pg.draw.rect(self.screen, DARK_GRAY, (73, 0, 39, 25))
-            # PLC setting
             self.screen.blit(self.texts[1][0], (10, 30))  # 'PLC info:'
             self.screen.blit(self.texts[1][1], (20, 60))  # 'PLC connected:...'
             self.screen.blit(self.texts[1][2], (20, 80))  # 'PLC name:...'
             self.screen.blit(self.texts[1][3], (20, 100))  # 'PLC type:...'
             self.screen.blit(self.texts[1][4], (20, 120))  # 'CPU state:...'
             self.screen.blit(self.texts[1][5], (20, 140))  # 'Dow/Up rate:...'
+        # liquid setting
         elif self.setting_page == 2:
-            # Liquid setting
+            pg.draw.rect(self.screen, DARK_GRAY, (112, 0, 111, 25))
             for i in range(3):
                 self.screen.blit(self.texts[2][0+i], (10, 30+(i*80)))
                 self.screen.blit(self.texts[2][3+i], (170, 30+(i*80)))
@@ -878,10 +924,8 @@ class Simulator:
             # drawing lines between list elements
             pg.draw.rect(self.screen, DARK_GRAY, (10, 100, 240, 1))
             pg.draw.rect(self.screen, DARK_GRAY, (10, 180, 240, 1))
-
-            pg.draw.rect(self.screen, DARK_GRAY, (112, 0, 111, 25))
+        # time setting
         else:
-            # Time setting
             pg.draw.rect(self.screen, DARK_GRAY, (223, 0, 43, 25))
             # fps
             self.screen.blit(self.texts[3][0], (10, 30))  # 'FPS limit:'

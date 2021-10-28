@@ -170,12 +170,15 @@ class Machine(pg.sprite.Sprite):
                             self.current_bottle = bottle
                             self.current_bottle_pos = bottle.rect.x
                             if self.type == "B":
-                                if self.sim.filler_index < 3:
+                                if self.current_bottle.filler_name == "" and self.sim.filler_index < 3:
                                     self.current_bottle.filler_name = self.sim.fillers[self.sim.filler_index].name
+                                    self.current_bottle.filler_color = self.sim.filler_color
+                                    self.current_bottle.filler_transparency = self.sim.filler_transparency
+                                elif self.current_bottle.filler_name != "" and self.sim.filler_index < 3:
+                                    if self.current_bottle.filler_name != self.sim.fillers[self.sim.filler_index].name:
+                                        self.operation_error = True
                                 else:
-                                    self.current_bottle.filler_name = ""
-                                self.current_bottle.filler_color = self.sim.filler_color
-                                self.current_bottle.filler_transparency = self.sim.filler_transparency
+                                    self.operation_error = True
             if self.operation_tool_off and not self.last_tool_off_state:
                 self.operation_tool_ready = False
                 self.tool_work = False
@@ -245,7 +248,7 @@ class Machine(pg.sprite.Sprite):
         if self.current_bottle.filled >= self.current_bottle.overfilled or self.current_bottle.closed:
             self.operation_error = True
         else:
-            if not self.current_bottle.broken:
+            if not self.current_bottle.broken and not self.operation_error:
                 if self.sim.fps > 0:
                     progress = (self.current_bottle.fill_max / self.sim.fps * (self.tool_duration / 1000))
                 else:
@@ -257,9 +260,8 @@ class Machine(pg.sprite.Sprite):
                 for filler in self.sim.fillers:
                     if filler.name == self.current_bottle.filler_name:
                         if not filler.is_inf:
-                            filler.amount -= 1
-                            if filler.amount < 0:
-                                filler.amount == 0
+                            if filler.amount > 0:
+                                filler.amount -= 1
                 self.sim.filler_update = True
 
     def operation_c(self):

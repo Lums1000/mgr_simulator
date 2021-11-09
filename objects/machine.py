@@ -79,6 +79,7 @@ class Machine(pg.sprite.Sprite):
         self.current_time = None
         self.current_bottle = None
         self.current_bottle_pos = None
+        self.lock_filler_update = False
         # Creating self processing variables
         self.self_processing_on = False
         self.self_processing_mem = False
@@ -170,6 +171,7 @@ class Machine(pg.sprite.Sprite):
                             self.current_bottle = bottle
                             self.current_bottle_pos = bottle.rect.x
                             if self.type == "B":
+                                self.lock_filler_update = False
                                 if self.current_bottle.filler_name == "" and self.sim.filler_index < 3:
                                     self.current_bottle.filler_name = self.sim.fillers[self.sim.filler_index].name
                                     self.current_bottle.filler_color = self.sim.filler_color
@@ -257,12 +259,14 @@ class Machine(pg.sprite.Sprite):
                     self.current_bottle.filled += progress
             if self.current_bottle.filled >= self.current_bottle.fill_max:
                 self.operation_tool_ready = True
-                for filler in self.sim.fillers:
-                    if filler.name == self.current_bottle.filler_name:
-                        if not filler.is_inf:
-                            if filler.amount > 0:
-                                filler.amount -= 1
-                self.sim.filler_update = True
+                if not self.lock_filler_update:
+                    self.lock_filler_update = True
+                    for filler in self.sim.fillers:
+                        if filler.name == self.current_bottle.filler_name:
+                            if not filler.is_inf:
+                                if filler.amount > 0:
+                                    filler.amount -= 1
+                    self.sim.filler_update = True
 
     def operation_c(self):
         if self.current_time - self.tool_started >= self.tool_duration and not self.operation_tool_ready:
@@ -277,6 +281,11 @@ class Machine(pg.sprite.Sprite):
                     self.current_bottle.image = self.current_bottle.image_3
 
     def self_processing(self):
+        if self.sim.self_processing_on:
+            if self.operation_error:
+                self.operation_ack = True;
+            else:
+                self.operation_ack = False;
         if self.sp_cycle_state == 1:
             self.operation_go_down = True
             if self.operation_end_pos:

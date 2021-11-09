@@ -9,6 +9,9 @@ from objects.machine import *
 from objects.bottle import *
 from objects.productionLine import ProductionLine
 
+import sys
+import os
+
 
 class Simulator:
     def __init__(self):
@@ -67,45 +70,45 @@ class Simulator:
         self.status_operation_count = 0
         self.time_mem = 0
         self.time_set = 0
-        self.timer_on = 0
+        self.timer_on = False
 
     def initial(self):
         # Simulation initialization
         self.dir = path.dirname(__file__)
         img_dir = path.join(self.dir, 'img')
         # Load images
-        self.background = pg.image.load(path.join(img_dir, "bg.png")).convert()
-        self.machine_A = pg.image.load(path.join(img_dir, "machine_A.png")).convert()
-        self.machine_B = pg.image.load(path.join(img_dir, "machine_B.png")).convert()
-        self.machine_C = pg.image.load(path.join(img_dir, "machine_C.png")).convert()
-        self.machine_A_top = pg.image.load(path.join(img_dir, "machine_A_top.png")).convert()
-        self.machine_B_top = pg.image.load(path.join(img_dir, "machine_B_top.png")).convert()
-        self.machine_C_top = pg.image.load(path.join(img_dir, "machine_C_top.png")).convert()
-        self.machine_A_sensor = pg.image.load(path.join(img_dir, "machine_A_sensor.png")).convert()
-        self.machine_B_sensor = pg.image.load(path.join(img_dir, "machine_B_sensor.png")).convert()
-        self.machine_C_sensor = pg.image.load(path.join(img_dir, "machine_C_sensor.png")).convert()
-        self.laser = pg.image.load(path.join(img_dir, "laser.png")).convert()
+        self.background = pg.image.load(self.resource_path("img/bg.png")).convert()
+        self.machine_A = pg.image.load(self.resource_path("img/machine_A.png")).convert()
+        self.machine_B = pg.image.load(self.resource_path("img/machine_B.png")).convert()
+        self.machine_C = pg.image.load(self.resource_path("img/machine_C.png")).convert()
+        self.machine_A_top = pg.image.load(self.resource_path("img/machine_A_top.png")).convert()
+        self.machine_B_top = pg.image.load(self.resource_path("img/machine_B_top.png")).convert()
+        self.machine_C_top = pg.image.load(self.resource_path("img/machine_C_top.png")).convert()
+        self.machine_A_sensor = pg.image.load(self.resource_path("img/machine_A_sensor.png")).convert()
+        self.machine_B_sensor = pg.image.load(self.resource_path("img/machine_B_sensor.png")).convert()
+        self.machine_C_sensor = pg.image.load(self.resource_path("img/machine_C_sensor.png")).convert()
+        self.laser = pg.image.load(self.resource_path("img/laser.png")).convert()
         self.bottle_images = []  # For loading bottle sprites with alpha channel
         for i in range(1, 5):
             self.bottle_images.append(
-                pg.image.load(path.join(img_dir, 'bottle_sprite_part{}.png'.format(i))).convert_alpha())
-        self.help = pg.image.load(path.join(img_dir, 'help.png'.format())).convert_alpha()
-        self.checked = pg.image.load(path.join(img_dir, 'checked.png'.format())).convert_alpha()
-        self.checked_inactive = pg.image.load(path.join(img_dir, 'checked_inactive.png'.format())).convert_alpha()
-        self.checked_locked = pg.image.load(path.join(img_dir, 'checked_locked.png'.format())).convert_alpha()
+                pg.image.load(self.resource_path('img/bottle_sprite_part{}.png'.format(i))).convert_alpha())
+        self.help = pg.image.load(self.resource_path('img/help.png'.format())).convert_alpha()
+        self.checked = pg.image.load(self.resource_path('img/checked.png'.format())).convert_alpha()
+        self.checked_inactive = pg.image.load(self.resource_path('img/checked_inactive.png'.format())).convert_alpha()
+        self.checked_locked = pg.image.load(self.resource_path('img/checked_locked.png'.format())).convert_alpha()
         self.filler_buttons = []
-        self.filler_buttons.append(pg.image.load(path.join(img_dir, 'filler_minus_ten.png'.format())).convert_alpha())
-        self.filler_buttons.append(pg.image.load(path.join(img_dir, 'filler_minus_one.png'.format())).convert_alpha())
-        self.filler_buttons.append(pg.image.load(path.join(img_dir, 'filler_plus_one.png'.format())).convert_alpha())
-        self.filler_buttons.append(pg.image.load(path.join(img_dir, 'filler_plus_ten.png'.format())).convert_alpha())
-        self.filler_buttons.append(pg.image.load(path.join(img_dir, 'filler_inf.png'.format())).convert_alpha())
-        self.filler_buttons.append(pg.image.load(path.join(img_dir, 'filler_down.png'.format())).convert_alpha())
-        self.filler_buttons.append(pg.image.load(path.join(img_dir, 'filler_up.png'.format())).convert_alpha())
+        self.filler_buttons.append(pg.image.load(self.resource_path('img/filler_minus_ten.png'.format())).convert_alpha())
+        self.filler_buttons.append(pg.image.load(self.resource_path('img/filler_minus_one.png'.format())).convert_alpha())
+        self.filler_buttons.append(pg.image.load(self.resource_path('img/filler_plus_one.png'.format())).convert_alpha())
+        self.filler_buttons.append(pg.image.load(self.resource_path('img/filler_plus_ten.png'.format())).convert_alpha())
+        self.filler_buttons.append(pg.image.load(self.resource_path('img/filler_inf.png'.format())).convert_alpha())
+        self.filler_buttons.append(pg.image.load(self.resource_path('img/filler_down.png'.format())).convert_alpha())
+        self.filler_buttons.append(pg.image.load(self.resource_path('img/filler_up.png'.format())).convert_alpha())
         # Load sprite sheets
-        self.lightGreenSpriteSheet = Spritesheet(path.join(img_dir, "light_green_sprites.png"))
-        self.lightOrangeSpriteSheet = Spritesheet(path.join(img_dir, "light_orange_sprites.png"))
-        self.lightRedSpriteSheet = Spritesheet(path.join(img_dir, "light_red_sprites.png"))
-        self.productionLineSpriteSheet = Spritesheet(path.join(img_dir, "production_line_sprites.png"))
+        self.lightGreenSpriteSheet = Spritesheet(self.resource_path("img/light_green_sprites.png"))
+        self.lightOrangeSpriteSheet = Spritesheet(self.resource_path("img/light_orange_sprites.png"))
+        self.lightRedSpriteSheet = Spritesheet(self.resource_path("img/light_red_sprites.png"))
+        self.productionLineSpriteSheet = Spritesheet(self.resource_path("img/production_line_sprites.png"))
         # Preparing io area
         for i in range(37):
             self.inputs.append(False)
@@ -128,8 +131,8 @@ class Simulator:
             if self.broken_bottle_chance > 100:
                 self.broken_bottle_chance = 100
             self.min_space = self.config.getint('simulator', 'min_bottles_space')
-            if self.min_space < 0:
-                self.min_space = 0
+            if self.min_space < 10:
+                self.min_space = 10
             self.max_space = self.config.getint('simulator', 'max_bottles_space')
             if self.max_space < self.min_space:
                 self.max_space = self.min_space
@@ -144,6 +147,13 @@ class Simulator:
                 self.manual_mode_fps = 30
             if self.manual_mode_fps > 800:
                 self.manual_mode_fps = 800
+            self.unlimited_fps_on = self.config.getboolean('simulator', 'unlimited_fps')
+            self.auto_fps_on = self.config.getboolean('simulator', 'auto_fps')
+            self.timer_on = self.config.getboolean('simulator', 'timer_on')
+            self.time_set = self.config.getint('simulator', 'timer_time')
+            if self.time_set <= 0:
+                self.time_set = 0
+                self.timer_on = False
             # [plc]
             self.plc_address = self.config.get('plc', 'address')
             self.plc_rack = self.config.getint('plc', 'rack')
@@ -185,8 +195,6 @@ class Simulator:
         self.write_operation_count = 0
         self.read_operation_count = 0
         self.time_mem = 0
-        self.time_set = 0
-        self.timer_on = False
         self.setting_page = 0
         self.filler_update = True
         # Initial texts render
@@ -289,10 +297,6 @@ class Simulator:
         self.start_simulation = False
         self.self_processing_on = False
         self.manual_mode_on = False
-        self.unlimited_fps_on = False
-        self.auto_fps_on = False
-        self.timer_on = True
-        self.time_set = 60
         self.run()
 
     def run(self):
@@ -309,15 +313,17 @@ class Simulator:
                 self.fps = self.manual_mode_fps
             elif self.auto_fps_on and self.plc_read_thread.connected:
                 if self.read_pps <= self.write_pps:
-                    self.fps = self.read_pps
+                    self.fps = math.ceil(self.read_pps * 0.9)
                 else:
-                    self.fps = self.write_pps
+                    self.fps = math.ceil(self.write_pps * 0.9)
             elif self.unlimited_fps_on:
                 self.fps = 0
             else:
                 self.fps = self.max_fps
             self.clock.tick(self.fps)
+            # input processing
             self.events()
+            # objects state update
             if self.start_simulation:
                 self.update()
             self.filler()
@@ -328,10 +334,12 @@ class Simulator:
                 self.self_processing()
             else:
                 self.plc_processing()
+            # drawing frame
             self.draw()
+            # timer execution
             if self.timer_on:
                 if time.time() - self.time_mem >= self.time_set:
-                    print("Simulation end by timer.")
+                    print("Simulation end by timer, after " + str(self.time_set) + " sec.")
                     self.running = False
         # at the end finish threads processes
         if not self.running:
@@ -837,7 +845,7 @@ class Simulator:
         # self.lasers.draw(self.screen)
         # draw bottle liquid
         for bottle in self.bottles:
-            if not bottle.broken:
+            if not bottle.broken and bottle.filled > 0:
                 s = pg.Surface((86, bottle.filled))
                 s.set_alpha(255 * bottle.filler_transparency)
                 s.fill(bottle.filler_color)
@@ -970,6 +978,15 @@ class Simulator:
         font = pg.font.Font(self.font_name, size)
         text_surface = font.render(text, True, color)
         return text_surface
+
+    def resource_path(self, relative_path):
+        try:
+            # PyInstaller creates a temp folder and stores path in _MEIPASS
+            base_path = sys._MEIPASS
+        except Exception:
+            base_path = os.path.abspath(".")
+
+        return os.path.join(base_path, relative_path)
 
 
 # Main

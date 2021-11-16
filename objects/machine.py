@@ -147,7 +147,7 @@ class Machine(pg.sprite.Sprite):
                 self.self_processing()
 
         # processing fragment
-        if not self.operation_error:
+        if self.sim.is_start and not self.operation_error:
             self.current_time = pg.time.get_ticks()
             # process
             if self.operation_go_down and self.rect.y < self.end_pos:
@@ -197,6 +197,7 @@ class Machine(pg.sprite.Sprite):
                         if self.allow_pos[0] <= self.current_bottle.rect.x <= self.allow_pos[1]:
                             self.current_bottle_pos = self.current_bottle.rect.x
                         else:
+                            self.operation_error = True
                             self.current_bottle = None
                             self.current_bottle_pos = None
             # raise error
@@ -281,7 +282,7 @@ class Machine(pg.sprite.Sprite):
                     self.current_bottle.image = self.current_bottle.image_3
 
     def self_processing(self):
-        if self.sim.self_processing_on:
+        if self.sim.self_processing_on and not self.sim.manual_mode_on:
             if self.operation_error:
                 self.operation_ack = True;
             else:

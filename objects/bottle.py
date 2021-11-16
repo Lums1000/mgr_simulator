@@ -35,7 +35,7 @@ class Bottle(pg.sprite.Sprite):
 
     def update(self):
         # moving bottle with production line
-        if self.sim.production_line_run:
+        if self.sim.production_line_run and self.sim.is_start:
             self.rect.x += 1
         # destroying objects out of screen
         if self.rect.left > WIDTH:

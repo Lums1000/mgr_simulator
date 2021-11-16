@@ -25,7 +25,7 @@ class ProductionLine(pg.sprite.Sprite):
         self.dt = 1.02  # Set by observation (for bottle speed equal to production line speed)
 
     def update(self):
-        if self.sim.production_line_run:
+        if self.sim.production_line_run and self.sim.is_start:
             self.t += self.dt
             if self.t > 40:
                 self.t = 0

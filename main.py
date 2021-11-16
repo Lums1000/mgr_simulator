@@ -58,6 +58,8 @@ class Simulator:
         self.texts = []
         self.setting_page = 0
         self.show_help = False
+        self.is_start = False
+        self.is_error = False
 
         self.sim_count = 0
         self.read_pps = 0
@@ -96,6 +98,7 @@ class Simulator:
         self.checked = pg.image.load(self.resource_path('img/checked.png'.format())).convert_alpha()
         self.checked_inactive = pg.image.load(self.resource_path('img/checked_inactive.png'.format())).convert_alpha()
         self.checked_locked = pg.image.load(self.resource_path('img/checked_locked.png'.format())).convert_alpha()
+        self.control_panel = pg.image.load(self.resource_path("img/control_panel.png")).convert()
         self.filler_buttons = []
         self.filler_buttons.append(pg.image.load(self.resource_path('img/filler_minus_ten.png'.format())).convert_alpha())
         self.filler_buttons.append(pg.image.load(self.resource_path('img/filler_minus_one.png'.format())).convert_alpha())
@@ -125,6 +128,7 @@ class Simulator:
         try:
             self.config.read('simulator.ini')
             # [simulator]
+            self.start_simulation = self.config.getboolean('simulator', 'start_simulation')
             self.broken_bottle_chance = self.config.getint('simulator', 'broken_bottle_probability')
             if self.broken_bottle_chance < 0:
                 self.broken_bottle_chance = 0
@@ -231,6 +235,8 @@ class Simulator:
         self.texts[4].append(self.render_text("Time", 15, WHITE))
         self.texts[4].append(self.render_text("S.P.", 15, WHITE))
         # Preparing new simulation
+        self.is_start = False
+        self.is_error = False
         self.fps = FPS
         self.new()
 
@@ -253,6 +259,10 @@ class Simulator:
             MachineSensor(self, 250 + i * 250, 335, machine_types[i])
         for i in range(5):
             ProductionLine(self, 0 + i * 200, 460)
+        # creating control_panel lights
+        self.control_panel_G = Light2(self, 175, 563, 'G')
+        self.control_panel_R = Light2(self, 175, 578, 'R')
+        self.control_panel_G.is_on = True
         # creating first bottle
         self.last_bottle = Bottle(self, -100, 320)
         # creating read (main) thread objects for exchanging data with PLC
@@ -294,7 +304,6 @@ class Simulator:
         self.sp_C_end_pos = False
 
         # Starting simulation
-        self.start_simulation = False
         self.self_processing_on = False
         self.manual_mode_on = False
         self.run()
@@ -479,6 +488,16 @@ class Simulator:
                 pos = pg.mouse.get_pos()
                 x = pos[0]
                 y = pos[1]
+                # switching control_panel variables
+                if 563 <= y <= 587:
+                    if 5 <= x <= 54:
+                        if not self.is_error:
+                            self.is_start = True
+                    if 60 <= x <= 109:
+                        self.is_start = False
+                    if 115 <= x <= 164:
+                        for machine in self.machines:
+                            machine.operation_error = False
                 # switching setting menu pages
                 if y <= 25:
                     if x < 73:
@@ -598,6 +617,21 @@ class Simulator:
             # spawning next bottles in equal distances
             if self.last_bottle.rect.x >= 150:
                 self.last_bottle = Bottle(self, self.last_bottle.rect.x - 250, 320)
+        # update control_panel
+        self.is_error = False
+        for machine in self.machines:
+            if machine.operation_error:
+                self.is_error = True
+        if self.is_error:
+            self.is_start = False
+        if self.is_start:
+            self.control_panel_G.is_on = True
+        else:
+            self.control_panel_G.is_on = False
+        if self.is_error:
+            self.control_panel_R.is_on = True
+        else:
+            self.control_panel_R.is_on = False
 
     def filler(self):
         # Liquid queue processing
@@ -841,6 +875,8 @@ class Simulator:
         # draw sprites under bottle liquid
         self.machines_sensor.draw(self.screen)
         self.production_lines.draw(self.screen)
+        # draw control panel
+        self.screen.blit(self.control_panel, (0, 550))
         # no need to draw lasers as they are included in machine_sensor image
         # self.lasers.draw(self.screen)
         # draw bottle liquid

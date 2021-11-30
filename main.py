@@ -282,10 +282,10 @@ class Simulator:
         self.machine_A_operation_in = [False, False, False, False, False, False]
         self.machine_B_operation_in = [False, False, False, False, False, False]
         self.machine_C_operation_in = [False, False, False, False, False, False]
-        # operation start_pos/end_pos/tool_ready/error (outputs)
-        self.machine_A_operation_out = [False, False, False, False]
-        self.machine_B_operation_out = [False, False, False, False]
-        self.machine_C_operation_out = [False, False, False, False]
+        # operation start_pos/end_pos/tool_work/tool_ready/error (outputs)
+        self.machine_A_operation_out = [False, False, False, False, False]
+        self.machine_B_operation_out = [False, False, False, False, False]
+        self.machine_C_operation_out = [False, False, False, False, False]
         # Creating self_processing_on variables
         self.sp_last_A_LR = [False, False]
         self.sp_last_B_LR = [False, False]
@@ -778,9 +778,9 @@ class Simulator:
 
         # cycle A
         if not self.sp_openA:
-            if self.machine_A_operation_out[2]:
-                self.sp_A_ok = True
             if self.machine_A_operation_out[3]:
+                self.sp_A_ok = True
+            if self.machine_A_operation_out[4]:
                 self.sp_A_ok = False
             if self.machine_A_operation_out[1]:
                 self.sp_A_end_pos = True
@@ -795,9 +795,9 @@ class Simulator:
                 self.sp_A_end_pos = False
         # cycle B
         if not self.sp_openB:
-            if self.machine_B_operation_out[2]:
-                self.sp_B_ok = True
             if self.machine_B_operation_out[3]:
+                self.sp_B_ok = True
+            if self.machine_B_operation_out[4]:
                 self.sp_B_ok = False
             if self.machine_B_operation_out[1]:
                 self.sp_B_end_pos = True
@@ -812,9 +812,9 @@ class Simulator:
                 self.sp_B_end_pos = False
         # cycle C
         if not self.sp_openC:
-            if self.machine_C_operation_out[2]:
-                self.sp_C_ok = True
             if self.machine_C_operation_out[3]:
+                self.sp_C_ok = True
+            if self.machine_C_operation_out[4]:
                 self.sp_C_ok = False
             if self.machine_C_operation_out[1]:
                 self.sp_C_end_pos = True
@@ -859,11 +859,13 @@ class Simulator:
                             self.machine_C_LR[0], self.machine_C_LR[1],
                             self.machine_A_operation_out[0], self.machine_A_operation_out[1],
                             self.machine_A_operation_out[2], self.machine_A_operation_out[3],
+                            self.machine_A_operation_out[4],
                             self.machine_B_operation_out[0], self.machine_B_operation_out[1],
                             self.machine_B_operation_out[2], self.machine_B_operation_out[3],
+                            self.machine_B_operation_out[4],
                             self.machine_C_operation_out[0], self.machine_C_operation_out[1],
                             self.machine_C_operation_out[2], self.machine_C_operation_out[3],
-                            False, False, False, False, False, False]
+                            self.machine_C_operation_out[4], False, False, False]
 
             self.io_lock = False
 
@@ -1002,12 +1004,6 @@ class Simulator:
             self.screen.blit(self.help, (0, 0))
         # flip the display after drawing everything
         pg.display.flip()
-
-    # def draw_text(self, text, size, color, x, y):
-    #     # Additional helping function for drawing text
-    #     font = pg.font.Font(self.font_name, size)
-    #     text_surface = font.render(text, True, color)
-    #     self.screen.blit(text_surface, (x, y))
 
     def render_text(self, text, size, color):
         # Additional helping function for rendering text

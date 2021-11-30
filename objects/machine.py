@@ -74,7 +74,6 @@ class Machine(pg.sprite.Sprite):
         self.rect.x = x
         self.rect.y = y
         self.allow_pos = [self.rect.x + 54, self.rect.x + 58]
-        self.tool_work = False
         self.tool_started = None
         self.current_time = None
         self.current_bottle = None
@@ -103,6 +102,7 @@ class Machine(pg.sprite.Sprite):
         # ...outputs
         self.operation_start_pos = False
         self.operation_end_pos = False
+        self.operation_tool_work = False
         self.operation_tool_ready = False
         self.operation_error = False
 
@@ -163,7 +163,7 @@ class Machine(pg.sprite.Sprite):
             else:
                 self.operation_start_pos = False
             if self.operation_tool_on and not self.last_tool_on_state:
-                self.tool_work = True
+                self.operation_tool_work = True
                 self.tool_started = self.current_time
                 if self.operation_end_pos:
                     for bottle in self.sim.bottles:
@@ -183,8 +183,8 @@ class Machine(pg.sprite.Sprite):
                                     self.operation_error = True
             if self.operation_tool_off and not self.last_tool_off_state:
                 self.operation_tool_ready = False
-                self.tool_work = False
-            if self.tool_work:
+                self.operation_tool_work = False
+            if self.operation_tool_work:
                 if self.current_bottle is not None:
                     if self.current_bottle.rect.x == self.current_bottle_pos:
                         if self.type == "A":
@@ -205,12 +205,12 @@ class Machine(pg.sprite.Sprite):
                 self.operation_error = True
             if self.operation_tool_on and self.operation_tool_off:
                 self.operation_error = True
-            if (self.operation_tool_on or self.tool_work) and (self.operation_go_down or self.operation_go_up):
+            if (self.operation_tool_on or self.operation_tool_work) and (self.operation_go_down or self.operation_go_up):
                 self.operation_error = True
             if self.operation_error:
-                self.tool_work = False
                 self.current_bottle = None
                 self.current_bottle_pos = None
+                self.operation_tool_work = False
                 self.operation_tool_ready = False
         else:
             # acknowledge error (only raising edge)
@@ -227,18 +227,21 @@ class Machine(pg.sprite.Sprite):
         if self.type == "A":
             self.sim.machine_A_operation_out[0] = self.operation_start_pos
             self.sim.machine_A_operation_out[1] = self.operation_end_pos
-            self.sim.machine_A_operation_out[2] = self.operation_tool_ready
-            self.sim.machine_A_operation_out[3] = self.operation_error
+            self.sim.machine_A_operation_out[2] = self.operation_tool_work
+            self.sim.machine_A_operation_out[3] = self.operation_tool_ready
+            self.sim.machine_A_operation_out[4] = self.operation_error
         elif self.type == "B":
             self.sim.machine_B_operation_out[0] = self.operation_start_pos
             self.sim.machine_B_operation_out[1] = self.operation_end_pos
-            self.sim.machine_B_operation_out[2] = self.operation_tool_ready
-            self.sim.machine_B_operation_out[3] = self.operation_error
+            self.sim.machine_B_operation_out[2] = self.operation_tool_work
+            self.sim.machine_B_operation_out[3] = self.operation_tool_ready
+            self.sim.machine_B_operation_out[4] = self.operation_error
         else:
             self.sim.machine_C_operation_out[0] = self.operation_start_pos
             self.sim.machine_C_operation_out[1] = self.operation_end_pos
-            self.sim.machine_C_operation_out[2] = self.operation_tool_ready
-            self.sim.machine_C_operation_out[3] = self.operation_error
+            self.sim.machine_C_operation_out[2] = self.operation_tool_work
+            self.sim.machine_C_operation_out[3] = self.operation_tool_ready
+            self.sim.machine_C_operation_out[4] = self.operation_error
 
     def operation_a(self):
         if self.current_time - self.tool_started >= self.tool_duration:
@@ -305,8 +308,9 @@ class Machine(pg.sprite.Sprite):
                 self.operation_tool_off = True
                 self.sp_cycle_state = 3
         elif self.sp_cycle_state == 3:
-            self.operation_tool_off = False
-            self.operation_go_up = True
+            if not self.operation_tool_work:
+                self.operation_tool_off = False
+                self.operation_go_up = True
             if self.operation_start_pos:
                 self.operation_go_up = False
                 self.sp_during_cycle = False

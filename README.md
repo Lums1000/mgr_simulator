@@ -16,5 +16,5 @@ Prepared simulation shows a glass bottle filling station using 3 main operations
 - possibility to connect to PLC simulator by Snap7 library;
 - possibility to control simulation from connected PLCs;
 
-##Screenshot of prepared application
+## Screenshot of prepared application
 ![Alt text](./img/screenshot.jpg)
